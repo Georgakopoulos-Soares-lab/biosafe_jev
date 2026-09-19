@@ -1,0 +1,41 @@
+=== Evaluating labbench-db ===
+[labbench-db] 100/520
+[labbench-db] 200/520
+[labbench-db] 300/520
+[labbench-db] 400/520
+[labbench-db] 500/520
+[labbench-db] 520/520
+=== Evaluating labbench-litqa2 ===
+[labbench-litqa2] 100/199
+[labbench-litqa2] 199/199
+=== Evaluating labbench-supp ===
+[labbench-supp] 82/82
+labbench-db: 207/520 correct = 0.3981 (errors: 0)
+labbench-litqa2: 80/199 correct = 0.4020 (errors: 0)
+labbench-supp: 30/82 correct = 0.3659 (errors: 0)
+{
+  "labbench-db": {
+    "n": 520,
+    "correct": 207,
+    "accuracy": 0.39807692307692305,
+    "errors": 0
+  },
+  "labbench-litqa2": {
+    "n": 199,
+    "correct": 80,
+    "accuracy": 0.4020100502512563,
+    "errors": 0
+  },
+  "labbench-supp": {
+    "n": 82,
+    "correct": 30,
+    "accuracy": 0.36585365853658536,
+    "errors": 0
+  },
+  "overall": {
+    "n": 801,
+    "correct": 317,
+    "accuracy": 0.39575530586766544,
+    "errors": 0
+  }
+}
