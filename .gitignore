@@ -1,1 +1,13 @@
-data
+# Benchmark source parquet files (~100 MB); re-downloadable from HuggingFace.
+# Only needed to re-collect model responses, not to reproduce the analysis.
+data/
+
+__pycache__/
+*.pyc
+
+# LaTeX build by-products; main.pdf is committed.
+manuscript/main.log
+manuscript/main.blg
+manuscript/main.aux
+manuscript/main.out
+manuscript/*.synctex.gz

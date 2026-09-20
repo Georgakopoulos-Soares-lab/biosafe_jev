@@ -1,0 +1,6 @@
+
+# Tooling caches
+.ruff_cache/
+
+# Rendered page images (regenerate with pdftoppm)
+render/
