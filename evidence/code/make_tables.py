@@ -30,10 +30,10 @@ def table1():
          r"$(\mathrm{acc}-c)/(1-c)$, using each item's own option count $c=1/n$ rather than a "
          r"single $25\%$ line, since option counts range from 2 to 10. ECE and AUROC are "
          r"computed on $p_{\max}$ rather than on the vendor \texttt{confidence} field "
-         r"(\S\ref{sec:uncertainty}). $P(\text{err}\mid p_{\max}\!\geq\!0.9)$ is the error "
+         r"(Section~\ref{sec:uncertainty}). $P(\text{err}\mid p_{\max}\!\geq\!0.9)$ is the error "
          r"rate given a confident answer, with Wilson intervals. \emph{Retained} is accuracy "
          r"on the items kept when the least confident 40\% are withheld "
-         r"(\S\ref{sec:selective}).}",
+         r"(Section~\ref{sec:selective}).}",
          r"\label{tab:main}",
          r"\footnotesize",
          r"\setlength{\tabcolsep}{3.3pt}",

@@ -25,8 +25,9 @@ figures/   the paper's two figures, as PDF (for LaTeX) and PNG (for inspection)
 | `jev_client.py` | shared API client: request construction, retry, response parsing |
 | `run_eval.py` | single-pass data collection (needs `TYPESAFE_API_KEY`) |
 | `run_circular.py` | cyclic-rotation data collection (needs `TYPESAFE_API_KEY`) |
+| `run_repeat.py` | repeatability study: identical-prompt repeats, rotation x repeat factorial, and per-dataset token measurement (needs `TYPESAFE_API_KEY`) |
 
-Only the first six are needed to reproduce the analysis; the last three contact the API.
+Only the first six are needed to reproduce the analysis; the last four contact the API.
 
 ## What each analysis block establishes
 
@@ -41,10 +42,19 @@ Only the first six are needed to reproduce the analysis; the last three contact 
 | `a7_breakeven` | accuracy an external second-stage model would have to exceed (not used in the paper) |
 | `a8_position_bias` | first-option preference against a simulated null, with power reported |
 | `a9_sensitivity` | error-scoring convention; whether quantisation ties explain the bias (they do not) |
-| `a10_cost` | call counts and estimated spend |
+| `a10_cost` | call counts and measured spend, with a generative-LLM price comparison |
+| `a11_repeatability` | identical-prompt vs rotation instability, the two-factor decomposition, and the matched-budget averaging control |
+| `a12_ablations` | label scheme (permuted letters, non-alphabetic glyphs) and prompt format (state-only, criteria-only), separating a position prior from a label prior |
 
 `numbers.tex` is a superset of what the paper cites: every statistic is exported so that
 `MANIFEST.md` can trace all of them, whether or not the prose quotes each one.
+
+## Provenance
+
+All calls used the alias `jev-latest`, which resolved to `jev-1.13.0` throughout, against
+`https://api.typesafe.ai/v1/systemone`, between 2026-09-19 and 2026-09-20. Runs made after
+usage capture was added write a `raw/manifest_*.json` recording endpoint, model version,
+start and finish times, call count, and token totals.
 
 ## Corrections made during internal review
 
@@ -69,7 +79,11 @@ the tied set (correct expectation 23.0, not 35.5, which removes the apparent eff
 ## Known limitations of this package
 
 - The model is proprietary and closed-weight; responses are not guaranteed reproducible.
-- `perm_*.json` covers the four-option WMDP suites only, so instability is a lower bound.
-- The label/position confound and the double option serialisation are **unablated**: the
-  ablation arms exist in `run_eval.py`, but those runs were not performed.
-- Token counts and costs are estimated from payload length; the endpoint reports no usage.
+- `perm_*.json` and `repeat_*.json` cover the four-option WMDP suites only, so instability
+  is a lower bound.
+- Token usage was not captured during the original runs; per-dataset rates were measured
+  afterwards on the same prompts (`raw/tokens_*.json`). The earlier payload-length
+  estimator understated true input tokens by 2-8x, so the cost figure was revised upward.
+- The label and format ablations were run on WMDP-Bio and WMDP-Cyber only
+  (`raw/*_lblshuf|lblsym|fmtstate|fmtcrit.jsonl`), so their conclusions do not
+  automatically extend to the LAB-Bench subtasks.

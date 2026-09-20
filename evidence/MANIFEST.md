@@ -12,19 +12,41 @@ Raw inputs
                                          original option indices
 ```
 
-128 macros defined in `manuscript/numbers.tex`.
+202 macros defined in `manuscript/numbers.tex`.
 
 | macro | value | stats.json block | produced by |
 |---|---|---|---|
 | **scale of the study** | | | |
 | `\statNItems` | 6{,}020 | `headline` | `analyze.py:headline` |
 | `\statNDatasets` | 10 | `headline` | `analyze.py:headline` |
-| `\statNCallsTotal` | 19{,}061 | `a10_cost` | `analyze.py:a10_cost` |
-| `\statNCallsSingle` | 6{,}021 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statNCallsTotal` | 19{,}060 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statNCallsSingle` | 6{,}020 | `a10_cost` | `analyze.py:a10_cost` |
 | `\statNCallsCircular` | 13{,}040 | `a10_cost` | `analyze.py:a10_cost` |
-| `\statUsdTotal` | 0.17 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statUsdTotal` | 0.57 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statInputTokens` | 13.5 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statTokensPerCall` | 709 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statModelVersion` | jev-1.13.0 | `` | `` |
+| `\statCollectionDates` | \mbox{2026-09-19} to \mbox{2026-09-20} | `` | `` |
+| `\statNBootCI` | 2{,}000 | `` | `` |
+| `\statLlmCheapUsd` | 0.71 | `` | `` |
+| `\statLlmCheapRatio` | 1.3 | `` | `` |
+| `\statLlmMidUsd` | 84 | `` | `` |
+| `\statLlmMidRatio` | 148 | `` | `` |
+| `\statLlmTopUsd` | 421 | `` | `` |
+| `\statLlmTopRatio` | 742 | `` | `` |
 | `\statUsdPerM` | 0.042 | `a10_cost` | `analyze.py:a10_cost` |
 | `\statNErrors` | 1 | `a9_sensitivity` | `analyze.py:a9_sensitivity` |
+| `\statNItemsRaw` | 6{,}021 | `headline` | `analyze.py:headline` |
+| `\statNCallsAblation` | 13{,}040 | `` | `` |
+| `\statNCallsAll` | 57{,}140 | `a10_cost` | `analyze.py:a10_cost` |
+| `\statAurocMin` | 0.62 | `` | `` |
+| `\statAurocMax` | 0.86 | `` | `` |
+| `\statEceMin` | 0.033 | `` | `` |
+| `\statEceMax` | 0.193 | `` | `` |
+| `\statLabMinName` | supp | `` | `` |
+| `\statLabMaxName` | seq | `` | `` |
+| `\statLabMin` | 36.6% | `` | `` |
+| `\statLabMax` | 61.8% | `` | `` |
 | **trap one: the confidence field** | | | |
 | `\statConfMatch` | 97.9% | `a1_confidence_semantics` | `analyze.py:a1_confidence_semantics` |
 | `\statConfTol` | 0.015 | `a1_confidence_semantics` | `analyze.py:a1_confidence_semantics` |
@@ -66,10 +88,13 @@ Raw inputs
 | `\statErrStableCyber` | 21.3% | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | `\statErrUnstableCyber` | 62.5% | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | `\statErrRatioCyber` | 2.93 | `a5_circular.cyber` | `analyze.py:a5_circular` |
+| `\statErrRatioBio` | 4.64 | `a5_circular.bio` | `analyze.py:a5_circular` |
 | `\statNullRatioCyber` | 5.43 | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | `\statNullRatioCyberLo` | 4.68 | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | `\statNullRatioCyberHi` | 6.35 | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | `\statNullRatioBio` | 10.03 | `a5_circular.bio` | `analyze.py:a5_circular` |
+| `\statNullRatioBioCI` | [8.31, 12.61] | `a5_circular.bio` | `analyze.py:a5_circular` |
+| `\statNullRatioCyberCI` | [4.68, 6.35] | `a5_circular.cyber` | `analyze.py:a5_circular` |
 | **nondeterminism: the free control arm** | | | |
 | `\statFlipIdenticalCyber` | 4.03% | `a5_circular.cyber.nondeterminism` | `analyze.py:_nondeterminism` |
 | `\statFlipIdenticalBio` | 1.34% | `a5_circular.bio.nondeterminism` | `analyze.py:_nondeterminism` |
@@ -91,9 +116,11 @@ Raw inputs
 | `\statAurocSpread` | 0.006 | `a4_selective_prediction` | `analyze.py:a4_selective_prediction` |
 | `\statAurocBio` | 0.855 | `a4_selective_prediction` | `analyze.py:a4_selective_prediction` |
 | `\statAurocCyber` | 0.774 | `a4_selective_prediction` | `analyze.py:a4_selective_prediction` |
-| `\statRCBioAtSixty` | 0.970 | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
+| `\statRCBioAtSixty` | 0.971 | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
+| `\statRCBioAtSixtyPct` | 97.1% | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
 | `\statRCBioBase` | 0.852 | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
 | `\statRCCyberAtSixty` | 0.789 | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
+| `\statRCCyberAtSixtyPct` | 78.9% | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
 | `\statRCCyberBase` | 0.634 | `a4_selective_prediction.risk_coverage` | `analyze.py:a4_selective_prediction` |
 | **PACT** | | | |
 | `\statEnsGainCyber` | +3.8 | `a5_circular.cyber` | `analyze.py:a5_circular` |
@@ -102,11 +129,11 @@ Raw inputs
 | `\statEnsGainBio` | +0.5 | `a5_circular.bio` | `analyze.py:a5_circular` |
 | `\statEnsGainBioLo` | -0.2 | `a5_circular.bio` | `analyze.py:a5_circular` |
 | `\statEnsGainBioHi` | +1.4 | `a5_circular.bio` | `analyze.py:a5_circular` |
-| `\statEnsAccCyber` | 0.671 | `a5_circular.cyber` | `analyze.py:a5_circular` |
-| `\statSingleAccCyber` | 0.633 | `a5_circular.cyber` | `analyze.py:a5_circular` |
-| `\statMajAccCyber` | 0.652 | `a5_circular.cyber` | `analyze.py:a5_circular` |
-| `\statCascadeCyberAtTwenty` | 0.659 | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
-| `\statCascadeCyberAtForty` | 0.670 | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
+| `\statEnsAccCyber` | 67.1% | `a5_circular.cyber` | `analyze.py:a5_circular` |
+| `\statSingleAccCyber` | 63.3% | `a5_circular.cyber` | `analyze.py:a5_circular` |
+| `\statMajAccCyber` | 65.2% | `a5_circular.cyber` | `analyze.py:a5_circular` |
+| `\statCascadeCyberAtTwenty` | 65.9% | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
+| `\statCascadeCyberAtForty` | 67.0% | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
 | `\statCascadeCyberCallsForty` | 2.2 | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
 | `\statCascadeAdvantageForty` | +2.2 | `a6_cascade` | `analyze.py:a6_cascade` |
 | `\statCascadeRandBeatCyber` | 0.0% | `` | `` |
@@ -114,9 +141,57 @@ Raw inputs
 | `\statCascadeRandBeatBio` | 6.8% | `` | `` |
 | `\statCascadeFracOfGain` | 97% | `` | `` |
 | `\statCascadeCostSaving` | 45% | `a6_cascade.cyber.confidence_router` | `analyze.py:a6_cascade` |
-| `\statBreakevenBio` | 0.674 | `a7_breakeven` | `analyze.py:a7_breakeven` |
-| `\statBreakevenCyber` | 0.405 | `a7_breakeven` | `analyze.py:a7_breakeven` |
+| `\statBreakevenBio` | 0.672 | `a7_breakeven` | `analyze.py:a7_breakeven` |
+| `\statBreakevenCyber` | 0.401 | `a7_breakeven` | `analyze.py:a7_breakeven` |
 | `\statBreakevenLitQA` | 0.287 | `a7_breakeven` | `analyze.py:a7_breakeven` |
+| **repeatability: identical calls versus rotations** | | | |
+| `\statReIdentBio` | 2.4% | `` | `` |
+| `\statReIdentCyber` | 9.2% | `` | `` |
+| `\statReRotBio` | 10.6% | `` | `` |
+| `\statReRotCyber` | 37.4% | `` | `` |
+| `\statReGapBio` | 8.2 | `` | `` |
+| `\statReGapCyber` | 28.2 | `` | `` |
+| `\statReNoiseShareBio` | 23% | `` | `` |
+| `\statReNoiseShareCyber` | 25% | `` | `` |
+| `\statReGainIdentBio` | -0.1 | `` | `` |
+| `\statReGainIdentCyber` | +0.5 | `` | `` |
+| `\statReGainRotBio` | +0.5 | `` | `` |
+| `\statReGainRotCyber` | +3.8 | `` | `` |
+| `\statReGainDiffBio` | +0.6 | `` | `` |
+| `\statReGainDiffCIBio` | [-0.2, +1.4] | `` | `` |
+| `\statReGainDiffCICyber` | [+2.0, +4.8] | `` | `` |
+| `\statReGainDiffCyber` | +3.4 | `` | `` |
+| `\statReWithinBio` | 2.5% | `` | `` |
+| `\statReWithinCyber` | 7.8% | `` | `` |
+| `\statReBetweenBio` | 9.8% | `` | `` |
+| `\statReBetweenCyber` | 37.8% | `` | `` |
+| `\statReRatioBio` | 3.8 | `` | `` |
+| `\statReRatioCyber` | 4.8 | `` | `` |
+| `\statReRepeats` | 4 | `` | `` |
+| `\statReFacItems` | 500 | `` | `` |
+| `\statReFacRepeats` | 3 | `` | `` |
+| `\statReCalls` | 25{,}040 | `` | `` |
+| **label and format ablations** | | | |
+| `\statAbBaseBio` | 24.5% | `` | `` |
+| `\statAbBaseCyber` | 34.8% | `` | `` |
+| `\statAbSymAccCIBio` | [-1.7, +0.2] | `` | `` |
+| `\statAbSymAccCICyber` | [-2.4, +0.5] | `` | `` |
+| `\statAbSymAccDeltaBio` | -0.8 | `` | `` |
+| `\statAbSymAccDeltaCyber` | -1.0 | `` | `` |
+| `\statAbSymBio` | 25.1% | `` | `` |
+| `\statAbSymCyber` | 36.1% | `` | `` |
+| `\statAbShufPosBio` | 24.8% | `` | `` |
+| `\statAbShufPosCyber` | 30.5% | `` | `` |
+| `\statAbShufLetterBio` | 26.2% | `` | `` |
+| `\statAbShufLetterCyber` | 31.2% | `` | `` |
+| `\statAbCritCIBio` | [-2.3, +0.1] | `` | `` |
+| `\statAbCritCICyber` | [-6.3, -3.1] | `` | `` |
+| `\statAbCritDeltaBio` | -1.1 | `` | `` |
+| `\statAbCritDeltaCyber` | -4.7 | `` | `` |
+| `\statAbStateCIBio` | [-0.9, +0.8] | `` | `` |
+| `\statAbStateCICyber` | [-3.3, -0.8] | `` | `` |
+| `\statAbStateDeltaBio` | -0.1 | `` | `` |
+| `\statAbStateDeltaCyber` | -2.0 | `` | `` |
 | **position bias** | | | |
 | `\statPosChiCyber` | 79.7 | `a8_position_bias.per_dataset` | `analyze.py:_pos_test` |
 | `\statPosPCyber` | <10^{-4} | `a8_position_bias.per_dataset` | `analyze.py:_pos_test` |
@@ -137,12 +212,13 @@ Raw inputs
 | **measurement apparatus** | | | |
 | `\statTieFrac` | 1.2% | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | `\statTieObservedFirst` | 21 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
+| `\statTieTotal` | 71 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | `\statTieExpectedFirst` | 23.0 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | `\statTieContainingFirst` | 46 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | `\statNTied` | 71 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | `\statDistinctProbs` | 101 | `a9_sensitivity.quantisation` | `analyze.py:a9_sensitivity` |
 | **chance baselines** | | | |
-| `\statChanceSupp` | 0.213 | `a8_position_bias.chance_baselines` | `analyze.py:a8_position_bias` |
+| `\statChanceSupp` | 21.3% | `a8_position_bias.chance_baselines` | `analyze.py:a8_position_bias` |
 | `\statLiftBio` | 0.802 | `a8_position_bias.chance_baselines` | `analyze.py:a8_position_bias` |
 | `\statLiftCyber` | 0.512 | `a8_position_bias.chance_baselines` | `analyze.py:a8_position_bias` |
 | `\statAccBio` | 85.2% | `a8_position_bias.chance_baselines` | `analyze.py:a8_position_bias` |
@@ -153,4 +229,4 @@ Raw inputs
 | `\statEceWorstWmdp` | 0.057 | `` | `` |
 | `\statEceLitQA` | 0.168 | `` | `` |
 | `\statEceSupp` | 0.193 | `` | `` |
-| `\statCascadeCyberRandForty` | 0.648 | `a6_cascade.cyber.random_router` | `analyze.py:a6_cascade` |
+| `\statCascadeCyberRandForty` | 64.8% | `a6_cascade.cyber.random_router` | `analyze.py:a6_cascade` |

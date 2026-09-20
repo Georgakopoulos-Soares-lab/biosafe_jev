@@ -2,7 +2,7 @@ r"""Build guards. Run after tectonic; exits non-zero on any violation.
 
 1. every \stat* macro used in main.tex is defined in numbers.tex
 2. every macro defined in numbers.tex is actually used (no stale leftovers)
-3. the output is US Letter (612 x 792 pt) -- BioAISS enforces this strictly
+3. the output is US Letter (612 x 792 pt) -- the venue enforces this strictly
 4. the body is within the 6-page short-paper limit, excluding the LLM Usage Statement
 """
 import re
@@ -87,7 +87,7 @@ if pages is not None:
               f"({'shares the page with counted content' if shares else 'alone'})"
               f" -> {body_pages} count")
     except StopIteration:
-        fails.append("no 'LLM Usage Statement' section found; it is mandatory for ACSAC")
+        fails.append("no 'LLM Usage Statement' section found; the venue requires one")
     if body_pages > PAGE_LIMIT:
         fails.append(f"{body_pages} pages count toward the limit, maximum is {PAGE_LIMIT}")
 

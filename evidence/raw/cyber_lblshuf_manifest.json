@@ -1,0 +1,12 @@
+{
+  "run": "cyber:shuffled:both",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model_alias": "jev-latest",
+  "model_version": "jev-1.13.0",
+  "started_utc": "2026-09-20T18:04:51+00:00",
+  "finished_utc": "2026-09-20T18:05:23+00:00",
+  "n_calls": 1987,
+  "label_mode": "shuffled",
+  "format_mode": "both",
+  "input_tokens": 1649238
+}

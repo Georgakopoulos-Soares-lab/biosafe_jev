@@ -26,9 +26,11 @@ figs:
 main.pdf: main.tex numbers.tex refs.bib
 	tectonic -X compile main.tex --outfmt pdf --keep-logs
 	$(PY) check_build.py
+	$(PY) check_parity.py
 
 check:
 	$(PY) check_build.py
+	$(PY) check_parity.py
 
 clean:
 	rm -f main.pdf main.log main.aux main.bbl main.blg main.out

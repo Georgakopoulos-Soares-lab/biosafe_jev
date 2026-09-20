@@ -221,10 +221,37 @@ def risk_coverage(scores, correct):
     return cov, cum
 
 
+def confidence_order(scores, seed=BOOTSTRAP_SEED):
+    """Item indices from least to most confident.
+
+    Scores are quantised to two decimals, so large blocks tie and an unstable sort would
+    partition them arbitrarily. Ties are broken by a seeded shuffle before a stable sort,
+    which makes the cut point reproducible and independent of input order.
+    """
+    scores = np.asarray(scores, float)
+    jitter = np.random.default_rng(seed).permutation(len(scores))
+    return jitter[np.argsort(scores[jitter], kind="stable")]
+
+
 def accuracy_at_coverage(scores, correct, coverage):
-    cov, acc = risk_coverage(scores, correct)
-    i = int(np.clip(round(coverage * len(cov)) - 1, 0, len(cov) - 1))
-    return float(acc[i])
+    """Accuracy on the items kept when the least confident (1 - coverage) are deferred.
+
+    This is the single definition used for every 'retained accuracy' number in the paper,
+    so the table and the prose cannot disagree.
+    """
+    correct = np.asarray(correct, float)
+    order = confidence_order(scores)
+    n_defer = int(round((1.0 - coverage) * len(order)))
+    kept = order[n_defer:]
+    return float(correct[kept].mean()) if len(kept) else float("nan")
+
+
+def deferred_accuracy(scores, correct, defer_frac):
+    """Accuracy on the deferred slice; the break-even an external model must beat."""
+    correct = np.asarray(correct, float)
+    order = confidence_order(scores)
+    n_defer = int(round(defer_frac * len(order)))
+    return float(correct[order[:n_defer]].mean()) if n_defer else float("nan")
 
 
 def dump(obj, path):

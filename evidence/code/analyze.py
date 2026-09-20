@@ -11,6 +11,7 @@ Experiment IDs map to the revision plan:
   A4  selective prediction / routing signal A9  sensitivity (errors, quantisation)
   A5  circular evaluation                   A10 cost accounting
 """
+import json
 import os
 
 import numpy as np
@@ -24,6 +25,7 @@ from common import (
     KEYS,
     LABEL,
     N_BOOT,
+    RAW,
     USD_PER_M_INPUT_TOKENS,
     accuracy_at_coverage,
     auprc,
@@ -31,6 +33,7 @@ from common import (
     benjamini_hochberg,
     boot_diff_ci,
     brier,
+    deferred_accuracy,
     dump,
     ece_adaptive,
     ece_fixed,
@@ -44,6 +47,11 @@ from common import (
 )
 
 HIGH_CONF = 0.9          # "high confidence" threshold used throughout
+# Provenance of the collected data. The alias `jev-latest` resolved to this version
+# throughout; the endpoint reports it on every response.
+MODEL_VERSION = "jev-1.13.0"
+API_ENDPOINT = "https://api.typesafe.ai/v1/systemone"
+COLLECTION_DATES = "2026-09-19 to 2026-09-20"
 N_BOOT_CI = 2000         # resamples for the ECE / AUROC interval estimates
 CIRCULAR_KEYS = ["bio", "cyber"]
 
@@ -466,17 +474,16 @@ def a7_breakeven(data):
         rows = valid(data[k])
         sc = np.array([r["p_max"] for r in rows], float)
         corr = np.array([1.0 if r["correct"] else 0.0 for r in rows], float)
-        order = np.argsort(sc)  # least confident first
         entry = {"base_accuracy": float(corr.mean()), "by_deferral": {}}
         for c in (0.2, 0.4, 0.6):
             nd = int(round(c * len(rows)))
             if nd == 0:
                 continue
-            slice_acc = float(corr[order[:nd]].mean())
+            # Same helpers as the risk-coverage curve, so Table 1 and the prose agree.
             entry["by_deferral"][str(c)] = {
                 "n_deferred": nd,
-                "breakeven_fallback_accuracy": slice_acc,
-                "retained_accuracy": float(corr[order[nd:]].mean()),
+                "breakeven_fallback_accuracy": deferred_accuracy(sc, corr, c),
+                "retained_accuracy": accuracy_at_coverage(sc, corr, 1.0 - c),
             }
         out[k] = entry
     return out
@@ -625,40 +632,244 @@ def a9_sensitivity(data):
     return out
 
 
+# ===================================================================== A11
+
+def _load_json(name):
+    path = os.path.join(RAW, name)
+    if not os.path.exists(path):
+        return None
+    with open(path) as fh:
+        return json.load(fh)
+
+
+def a11_repeatability(data):
+    """Separate answer-order sensitivity from run-to-run variation.
+
+    The cyclic experiment cannot do this on its own: when two rotations disagree, the
+    cause may be the changed option order or simply a non-deterministic endpoint. Here
+    every item is additionally queried k times with a byte-identical prompt, which
+    isolates the second source, and a stratified subsample is queried k times at every
+    rotation, which gives a two-factor decomposition.
+    """
+    out = {"meta": {"design": "k identical calls at rotation 0; "
+                              "k repeats x n rotations on a subsample",
+                    "dispatch": "task order shuffled so repeats are never adjacent"}}
+    for k in CIRCULAR_KEYS:
+        rep = _load_json(f"repeat_{k}.json")
+        circ = load_circular(k)
+        if rep is None or circ is None:
+            continue
+        cmap = {r["index"]: r for r in circ}
+        rep = [r for r in rep if r["index"] in cmap]
+        gold = np.array([r["gold"] for r in rep])
+        ch_id = np.array([r["choices_by_rep"] for r in rep])
+        pr_id = np.array([r["probs_by_rep"] for r in rep])
+        order = [r["index"] for r in rep]
+        ch_rot = np.array([cmap[i]["choices_by_rot"] for i in order])
+        pr_rot = np.array([cmap[i]["probs_by_rot"] for i in order])
+        n_items, n_rep = ch_id.shape
+
+        k_id = int((~(ch_id == ch_id[:, [0]]).all(1)).sum())
+        k_rot = int((~(ch_rot == ch_rot[:, [0]]).all(1)).sum())
+        p_id, lo_id, hi_id = wilson(k_id, n_items)
+        p_rot, lo_rot, hi_rot = wilson(k_rot, n_items)
+
+        # Matched budget: four calls either way, so the two averaging schemes are
+        # directly comparable. The difference isolates what re-presentation buys.
+        base = (ch_id[:, 0] == gold).astype(float)
+        ens_id = (pr_id.mean(1).argmax(1) == gold).astype(float)
+        ens_rot = (pr_rot.mean(1).argmax(1) == gold).astype(float)
+        g_id = boot_diff_ci(ens_id, base)
+        g_rot = boot_diff_ci(ens_rot, (ch_rot[:, 0] == gold).astype(float))
+        g_diff = boot_diff_ci(ens_rot, ens_id)
+
+        entry = {
+            "n_items": n_items, "n_repeats": n_rep,
+            "inconsistency_identical": p_id, "inconsistency_identical_ci": [lo_id, hi_id],
+            "inconsistency_rotations": p_rot, "inconsistency_rotations_ci": [lo_rot, hi_rot],
+            "order_attributable_gap": p_rot - p_id,
+            "noise_share_of_instability": p_id / p_rot if p_rot else float("nan"),
+            "acc_single": float(base.mean()),
+            "acc_identical_ensemble": float(ens_id.mean()),
+            "acc_rotation_ensemble": float(ens_rot.mean()),
+            "gain_identical": g_id[0], "gain_identical_ci": [g_id[1], g_id[2]],
+            "gain_rotation": g_rot[0], "gain_rotation_ci": [g_rot[1], g_rot[2]],
+            "gain_difference": g_diff[0], "gain_difference_ci": [g_diff[1], g_diff[2]],
+            "rotation_beats_identical": bool(g_diff[1] > 0),
+        }
+
+        # Two-factor subsample: within-rotation repeats vs between-rotation modes.
+        fac = _load_json(f"repeatfac_{k}.json")
+        if fac is not None:
+            ch = np.array([r["choices"] for r in fac])          # (N, rot, rep)
+            nf, n_rot, n_r = ch.shape
+            within = np.mean([
+                float(np.mean([len(set(ch[i, r])) > 1 for r in range(n_rot)]))
+                for i in range(nf)])
+            modes = np.array([[np.bincount(ch[i, r]).argmax() for r in range(n_rot)]
+                              for i in range(nf)])
+            between = float(np.mean([len(set(modes[i])) > 1 for i in range(nf)]))
+            entry["factorial"] = {
+                "n_items": nf, "n_rotations": n_rot, "n_repeats": n_r,
+                "within_rotation_disagreement": within,
+                "between_rotation_disagreement": between,
+                "between_to_within_ratio": between / within if within else float("nan"),
+            }
+        out[k] = entry
+    return out
+
+
+# ===================================================================== A12
+
+ABLATION_ARMS = [
+    ("lblshuf", "label", "letters permuted across positions"),
+    ("lblsym", "label", "non-alphabetic glyphs"),
+    ("fmtstate", "format", "options in the state text only"),
+    ("fmtcrit", "format", "options as category keys only"),
+]
+
+
+def _load_arm(subject, tag):
+    path = os.path.join(RAW, f"{subject}_{tag}.jsonl")
+    if not os.path.exists(path):
+        return None
+    rows = []
+    with open(path) as fh:
+        for line in fh:
+            r = json.loads(line)
+            if r["error"] is None:
+                rows.append(r)
+    return rows
+
+
+def a12_ablations(data):
+    """Resolve two confounds the main runs leave open.
+
+    The default prompt assigns answer labels in positional order, so a preference for the
+    first option cannot be told apart from a preference for the letter A. It also lists
+    every option twice, in the state text and again as a category key, which was never
+    ablated. Re-running with the labels permuted, with non-alphabetic glyphs, and with each
+    serialisation alone separates these.
+    """
+    out = {}
+    for k in CIRCULAR_KEYS:
+        base = valid(data[k])
+        n_opt = 4
+        b_acc = float(np.mean([r["correct"] for r in base]))
+        b_pos = np.bincount([r["pred_idx"] for r in base if r["pred_idx"] >= 0],
+                            minlength=n_opt)
+        gold = np.bincount([r["gold_idx"] for r in base], minlength=n_opt)
+        entry = {"baseline_accuracy": b_acc,
+                 "baseline_first_share": float(b_pos[0] / b_pos.sum()),
+                 "gold_first_share": float(gold[0] / gold.sum()),
+                 "arms": {}}
+        by_index = {r["index"]: r for r in base}
+        for tag, kind, desc in ABLATION_ARMS:
+            rows = _load_arm(k, tag)
+            if rows is None:
+                continue
+            paired = [(by_index[r["index"]], r) for r in rows if r["index"] in by_index]
+            a = np.array([float(x[1]["correct"]) for x in paired])
+            b = np.array([float(x[0]["correct"]) for x in paired])
+            d, lo, hi = boot_diff_ci(a, b)
+            pos = np.bincount([r["pred_idx"] for r in rows if r["pred_idx"] >= 0],
+                              minlength=n_opt)
+            arm = {"kind": kind, "description": desc, "n": len(rows),
+                   "accuracy": float(a.mean()),
+                   "delta_vs_baseline": d, "delta_ci": [lo, hi],
+                   "first_position_share": float(pos[0] / pos.sum())}
+            if tag == "lblshuf":
+                # With letters permuted, a label prior and a position prior separate.
+                arm["letter_a_share"] = float(
+                    np.mean([r["pred_label"] == "A" for r in rows]))
+            entry["arms"][tag] = arm
+        out[k] = entry
+    return out
+
+
 # ===================================================================== A10
 
 def a10_cost(data):
-    """Input-token cost, estimated from the serialised payload. Flagged as an estimate:
-    the API does not return a usage field on this endpoint."""
-    total_chars = 0
-    n_calls_main = 0
-    for key in KEYS:
-        for r in data[key]:
-            # options are serialised twice per request: in `state` and again as `criteria`
-            body = r["question"] + 2 * "".join(str(c) for c in r["choices"])
-            total_chars += len(body)
-            n_calls_main += 1
-    circ_calls = sum(len(load_circular(k) or []) * 4 for k in CIRCULAR_KEYS)
-    circ_chars = 0
+    """Cost from MEASURED token usage.
+
+    The endpoint reports `usage` on every response, but the original runs predate that
+    capture, so per-dataset input-token rates were measured afterwards on a sample of the
+    same prompts (raw/tokens_*.json) and, where a full re-run exists, from its exact
+    totals (raw/manifest_repeat_*.json). An earlier version of this analysis estimated
+    tokens from payload length; that estimator understates the true count substantially,
+    because the endpoint adds schema overhead the payload does not contain.
+    """
+    per_dataset, tok_single = {}, 0.0
+    for k in KEYS:
+        n = len(valid(data[k]))
+        sample = _load_json(f"tokens_{k}.json") or []
+        chars = float(np.mean([len(r["question"])
+                               + 2 * sum(len(str(c)) for c in r["choices"])
+                               for r in valid(data[k])]))
+        if sample:
+            rate = float(np.mean([r["input_tokens"] for r in sample]))
+            source = f"measured on {len(sample)} sampled prompts"
+        else:
+            rate = chars / CHARS_PER_TOKEN
+            source = "payload-length estimate (no measurement available)"
+        tok_single += rate * n
+        per_dataset[k] = {"n_calls": n, "mean_input_tokens": rate,
+                          "mean_payload_chars": chars,
+                          "estimator_ratio": rate / (chars / CHARS_PER_TOKEN),
+                          "source": source}
+
+    # Circular runs: exact totals where a same-prompt re-run recorded them.
+    tok_circ, circ_exact = 0.0, True
     for k in CIRCULAR_KEYS:
-        recs = load_circular(k) or []
-        ids = {r["index"] for r in recs}
-        per = [r for r in data[k] if r["index"] in ids]
-        circ_chars += 4 * sum(len(r["question"]) + 2 * len("".join(str(c) for c in r["choices"]))
-                              for r in per)
-    tok_main = total_chars / CHARS_PER_TOKEN
-    tok_circ = circ_chars / CHARS_PER_TOKEN
+        man = _load_json(f"manifest_repeat_{k}.json")
+        if man and man.get("usage_totals", {}).get("input_tokens"):
+            tok_circ += float(man["usage_totals"]["input_tokens"])
+        else:
+            circ_exact = False
+            recs = load_circular(k) or []
+            tok_circ += per_dataset[k]["mean_input_tokens"] * len(recs) * 4
+
+    n_single = sum(len(valid(data[k])) for k in KEYS)
+    n_circ = sum(len(load_circular(k) or []) * 4 for k in CIRCULAR_KEYS)
+    tok_total = tok_single + tok_circ
+    usd = tok_total / 1e6 * USD_PER_M_INPUT_TOKENS
+
+    # What the same decisions would cost with a generative model. List prices retrieved
+    # 2026-09-20. Two output regimes: answering with the option label alone, or with a
+    # short chain of thought, which dominates the total at frontier prices.
+    tiers = [
+        ("small (GPT-5-nano)", 0.05, 0.40),
+        ("mid (Gemini 3.8 Flash)", 0.75, 3.75),
+        ("mid (Claude Sonnet 5)", 2.00, 10.00),
+        ("frontier (Claude Opus 5)", 5.00, 25.00),
+        ("frontier (GPT-6 Astra)", 10.00, 50.00),
+    ]
+    n_calls = n_single + n_circ
+    regimes = {"answer_only": 5, "short_cot": 300}
+    comparison = {}
+    for label, p_in, p_out in tiers:
+        comparison[label] = {"usd_per_m_input": p_in, "usd_per_m_output": p_out}
+        for rname, out_tok in regimes.items():
+            total = tok_total / 1e6 * p_in + (out_tok * n_calls) / 1e6 * p_out
+            comparison[label][rname] = {"usd": total, "ratio_to_jev": total / usd}
+
     return {
-        "estimate_basis": f"chars/{CHARS_PER_TOKEN} tokens; endpoint returns no usage field",
+        "basis": "measured input tokens from the endpoint usage field",
         "usd_per_m_input_tokens": USD_PER_M_INPUT_TOKENS,
-        "n_calls_single_pass": n_calls_main,
-        "n_calls_circular": circ_calls,
-        "n_calls_total": n_calls_main + circ_calls,
-        "est_input_tokens_single_pass": int(tok_main),
-        "est_input_tokens_circular": int(tok_circ),
-        "est_usd_single_pass": tok_main / 1e6 * USD_PER_M_INPUT_TOKENS,
-        "est_usd_circular": tok_circ / 1e6 * USD_PER_M_INPUT_TOKENS,
-        "est_usd_total": (tok_main + tok_circ) / 1e6 * USD_PER_M_INPUT_TOKENS,
+        "n_calls_single_pass": n_single,
+        "n_calls_circular": n_circ,
+        "n_calls_total": n_calls,
+        "input_tokens_single_pass": int(tok_single),
+        "input_tokens_circular": int(tok_circ),
+        "input_tokens_total": int(tok_total),
+        "circular_tokens_exact": circ_exact,
+        "usd_total": usd,
+        "mean_input_tokens_per_call": tok_total / n_calls,
+        "per_dataset": per_dataset,
+        "llm_comparison": comparison,
+        "llm_comparison_note": "list prices retrieved 2026-09-20; batch APIs list at half "
+                               "the standard rate and cached input is typically 0.1x base, "
+                               "so these are upper bounds",
     }
 
 
@@ -690,6 +901,8 @@ def main():
     stats = {
         "meta": {"bootstrap_seed": 20260919, "n_boot": N_BOOT, "n_boot_ci": N_BOOT_CI,
                  "high_conf_threshold": HIGH_CONF,
+                 "model_version": MODEL_VERSION, "endpoint": API_ENDPOINT,
+                 "collection_dates": COLLECTION_DATES,
                  "datasets": [{"key": key, "label": lab, "family": fam}
                               for key, lab, fam in DATASETS]},
         "headline": headline(data),
@@ -703,6 +916,8 @@ def main():
         "a8_position_bias": a8_position_bias(data),
         "a9_sensitivity": a9_sensitivity(data),
         "a10_cost": a10_cost(data),
+        "a11_repeatability": a11_repeatability(data),
+        "a12_ablations": a12_ablations(data),
     }
     os.makedirs(DERIVED, exist_ok=True)
     dump(stats, os.path.join(DERIVED, "stats.json"))

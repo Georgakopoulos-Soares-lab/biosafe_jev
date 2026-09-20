@@ -43,7 +43,7 @@ Every statistic in the manuscript is computed by `evidence/code/analyze.py`, wri
 `evidence/derived/stats.json`, and exported as a LaTeX macro into
 `manuscript/numbers.tex`. The prose contains no hand-typed statistics, and the build fails
 if the text cites a macro the pipeline did not emit. `evidence/MANIFEST.md` maps each of
-the 128 macros back to the producing function and the raw file it derives from.
+the 185 macros back to the producing function and the raw file it derives from.
 
 The build also fails on an unresolved `\ref` or `\cite`, a page size other than US Letter,
 or a page count above the 6-page limit — see `manuscript/check_build.py`.
@@ -56,16 +56,22 @@ Requires `TYPESAFE_API_KEY` and the benchmark parquet files in `data/`.
 cd evidence/code
 python3 run_eval.py bio chem cyber bio-robust labbench-seq ...   # single pass per item
 python3 run_circular.py cyber bio                                # all cyclic rotations
+python3 run_repeat.py identical cyber bio --repeats 4            # repeatability control
+python3 run_repeat.py factorial cyber bio --repeats 3            # rotation x repeat design
 ```
 
-`run_eval.py` also provides two ablation arms for confounds the study leaves open. Neither
-was run, and no reported result depends on them:
+`run_eval.py` provides the two ablation arms reported in Section IV-C:
 
-- `--label-mode {positional,shuffled,symbolic}` — the default assigns answer labels in
-  positional order, so label identity and position are collinear and a first-option
-  preference cannot be separated from a first-label preference.
+- `--label-mode {positional,shuffled,symbolic}` — the default labels options in positional
+  order, so a first-position preference and a first-label preference are confounded.
+  Permuting the letters, or replacing them with non-alphabetic glyphs, separates the two.
 - `--format-mode {both,state,criteria}` — the default serialises each option twice, in the
-  state text and as a category key.
+  state text and as a category key; these arms isolate each serialisation.
+
+```sh
+python3 run_eval.py cyber bio --label-mode symbolic --tag lblsym
+python3 run_eval.py cyber bio --format-mode criteria --tag fmtcrit
+```
 
 ## Scope and limitations
 

@@ -2,8 +2,8 @@
 
 fig1_uncertainty   (a) reliability of the two uncertainty quantities the API exposes;
                    (b) risk-coverage under p_max deferral.
-fig2_permutation   (a) answer stability across the four cyclic rotations, with error
-                       rates on stable and unstable items;
+fig2_permutation   (a) instability under four identical calls versus four cyclic
+                       rotations, isolating run-to-run variation from option order;
                    (b) accuracy against mean inference cost for selective permutation
                        averaging, with random and oracle selection for reference.
 """
@@ -19,14 +19,20 @@ import numpy as np
 from common import DERIVED, FIGURES, LABEL, load_all, wilson
 
 plt.rcParams.update({
+    # Type 42 (TrueType) rather than matplotlib's default Type 3: IEEE PDF eXpress
+    # rejects Type 3 fonts outright.
+    "pdf.fonttype": 42,
+    "ps.fonttype": 42,
+    # The IEEE template specifies 8 pt Times New Roman for figure labels.
     "font.family": "serif",
-    "font.serif": ["DejaVu Serif"],
-    "font.size": 7.2,
-    "axes.labelsize": 7.2,
-    "axes.titlesize": 7.8,
-    "legend.fontsize": 6.5,
-    "xtick.labelsize": 6.8,
-    "ytick.labelsize": 6.8,
+    "font.serif": ["Times New Roman", "STIX Two Text", "DejaVu Serif"],
+    "mathtext.fontset": "stix",
+    "font.size": 8,
+    "axes.labelsize": 8,
+    "axes.titlesize": 8,
+    "legend.fontsize": 7,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8,
     "axes.spines.top": False,
     "axes.spines.right": False,
     "axes.linewidth": 0.7,
@@ -74,7 +80,7 @@ def fig1_uncertainty():
                [b["ci_hi"] - b["accuracy"] for b in rel]]
         axA.errorbar(x, y, yerr=err, marker=mk, ms=3.0, color=col, capsize=1.4,
                      lw=1.1, elinewidth=0.8, zorder=3, label=lab)
-    axA.set_xlabel("reported uncertainty value")
+    axA.set_xlabel("reported score")
     axA.set_ylabel("empirical accuracy")
     axA.set_xlim(0, 1.02)
     axA.set_ylim(0, 1.02)
@@ -93,8 +99,8 @@ def fig1_uncertainty():
         axB.plot(cur[:, 0] * 100, cur[:, 1] * 100, color=col, ls=ls, lw=1.15,
                  label=f"{LABEL[key]} (AUROC {sel[key]['p_max']['auroc']:.2f})")
     axB.axvline(60, color="0.55", lw=0.75, ls=(0, (2.5, 2)), zorder=1)
-    axB.annotate("defer 40%", xy=(58.8, 76), rotation=90, fontsize=6.0,
-                 color="0.4", ha="right", va="top")
+    axB.annotate("defer 40%", xy=(61.5, 102), fontsize=6.0, color="0.4",
+                 ha="left", va="top")
     axB.set_xlabel("coverage: items answered (%)")
     axB.set_ylabel("accuracy on retained items (%)")
     axB.set_xlim(10, 100)
@@ -109,31 +115,34 @@ def fig1_uncertainty():
 # --------------------------------------------------------------- Figure 2
 def fig2_permutation():
     fig, (axA, axB) = plt.subplots(1, 2, figsize=(7.16, 2.35))
-    circ = S["a5_circular"]
     ks = ["bio", "cyber"]
 
-    # (a) Stability, and the error rate within each stability class.
+    # (a) Where the instability comes from. Four identical calls isolate run-to-run
+    # variation; four rotations add option order on top of it.
+    rep = S["a11_repeatability"]
     x = np.arange(len(ks))
     w = 0.34
-    stable_v, unstable_v, es, eu = [], [], [], []
+    ident, rot, e_i, e_r = [], [], [], []
     for k in ks:
-        n_un = circ[k]["n_inconsistent"]
-        n_st = circ[k]["n_items"] - n_un
-        for rate, n, vals, errs in ((circ[k]["error_rate_stable"], n_st, stable_v, es),
-                                    (circ[k]["error_rate_unstable"], n_un, unstable_v, eu)):
+        n = rep[k]["n_items"]
+        for rate, vals, errs in ((rep[k]["inconsistency_identical"], ident, e_i),
+                                 (rep[k]["inconsistency_rotations"], rot, e_r)):
             p, lo, hi = wilson(int(round(rate * n)), n)
             vals.append(p * 100)
             errs.append([(p - lo) * 100, (hi - p) * 100])
-    axA.bar(x - w / 2, stable_v, w, yerr=np.array(es).T, capsize=2, color=GREEN,
-            error_kw={"lw": 0.75}, label="stable items")
-    axA.bar(x + w / 2, unstable_v, w, yerr=np.array(eu).T, capsize=2, color=RED,
-            error_kw={"lw": 0.75}, label="unstable items")
+    axA.bar(x - w / 2, ident, w, yerr=np.array(e_i).T, capsize=2, color=GREY,
+            error_kw={"lw": 0.75}, label="4 identical calls")
+    axA.bar(x + w / 2, rot, w, yerr=np.array(e_r).T, capsize=2, color=RED,
+            error_kw={"lw": 0.75}, label="4 cyclic rotations")
+    for i in range(len(ks)):
+        top = rot[i] + e_r[i][1]
+        axA.annotate(f"+{rot[i] - ident[i]:.0f} pp", (i + w / 2, top + 2.2),
+                     ha="center", fontsize=6.3, color="0.3")
     axA.set_xticks(x)
-    axA.set_xticklabels([f"{LABEL[k]}\n{circ[k]['consistency']*100:.1f}% stable"
-                         for k in ks])
-    axA.set_ylabel("error rate (%)")
-    axA.set_ylim(0, 84)
-    axA.set_title("(a) stability across four rotations", loc="left")
+    axA.set_xticklabels([LABEL[k] for k in ks])
+    axA.set_ylabel("items not answered\nidentically every time (%)")
+    axA.set_ylim(0, 50)
+    axA.set_title("(a) run-to-run variation vs. option order", loc="left")
     axA.legend(loc="upper left", frameon=False, borderaxespad=0.25, handlelength=1.4)
 
     # (b) Accuracy against mean inference cost.

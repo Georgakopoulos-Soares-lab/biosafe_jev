@@ -3,8 +3,10 @@
 Consolidates the request construction and retry logic that the evaluation runners share.
 The API key is read from TYPESAFE_API_KEY and is never written to disk or to a result file.
 """
+import json
 import os
 import time
+from datetime import datetime, timezone
 
 import requests
 
@@ -73,7 +75,12 @@ def build_choice_payload(question, choices, labels, fmt="both",
 
 
 def post(session, payload, timeout=60):
-    """POST with exponential backoff. Returns (json, None) or (None, error_string)."""
+    """POST with exponential backoff. Returns (json, None) or (None, error_string).
+
+    The response carries `model` (the alias resolved to a concrete version) and `usage`
+    (input/output token counts); callers should persist both, so that cost and provenance
+    are measured rather than reconstructed.
+    """
     delay, last = 1.0, None
     for _ in range(MAX_RETRIES):
         try:
@@ -95,7 +102,8 @@ def post(session, payload, timeout=60):
 
 
 def parse_choice(data, labels, key="answer"):
-    """Extract the selected position and the probability vector ordered by PROMPT POSITION."""
+    """Extract the selected position and the probability vector ordered by PROMPT POSITION,
+    together with the provenance and usage the endpoint reports."""
     ans = data["answers"][key]
     chosen = ans.get("choice")
     pos = labels.index(chosen) if chosen in labels else -1
@@ -105,4 +113,29 @@ def parse_choice(data, labels, key="answer"):
         "chosen_pos": pos,
         "probs_by_position": [float(probs.get(lab, 0.0)) for lab in labels],
         "confidence": ans.get("confidence"),
+        "model_version": data.get("model"),
+        "usage": data.get("usage"),
     }
+
+
+def utc_now():
+    """Timestamp for provenance, as an ISO-8601 string in UTC."""
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def write_manifest(path, run_name, n_calls, started, model_version, extra=None):
+    """Record what was run, against which endpoint and model version, and when."""
+    manifest = {
+        "run": run_name,
+        "endpoint": API_URL,
+        "model_alias": MODEL,
+        "model_version": model_version,
+        "started_utc": started,
+        "finished_utc": utc_now(),
+        "n_calls": n_calls,
+    }
+    if extra:
+        manifest.update(extra)
+    with open(path, "w") as fh:
+        json.dump(manifest, fh, indent=2)
+    return manifest

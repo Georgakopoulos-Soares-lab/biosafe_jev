@@ -1,0 +1,12 @@
+{
+  "run": "bio:symbolic:both",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model_alias": "jev-latest",
+  "model_version": "jev-1.13.0",
+  "started_utc": "2026-09-20T18:06:18+00:00",
+  "finished_utc": "2026-09-20T18:06:38+00:00",
+  "n_calls": 1273,
+  "label_mode": "symbolic",
+  "format_mode": "both",
+  "input_tokens": 610168
+}

@@ -32,6 +32,8 @@ from jev_client import (
     make_session,
     parse_choice,
     post,
+    utc_now,
+    write_manifest,
 )
 
 DATA = os.path.join(os.path.dirname(RAW), "..", "data")
@@ -100,6 +102,7 @@ def load_rows(subject):
 def run(subject, label_mode, fmt, out_path):
     rows = load_rows(subject)
     session = make_session()
+    started = utc_now()
     results = [None] * len(rows)
 
     def work(i, row):
@@ -118,6 +121,8 @@ def run(subject, label_mode, fmt, out_path):
         if err is None:
             p = parse_choice(data, labels)
             rec.update({
+                "model_version": p["model_version"],
+                "usage": p["usage"],
                 "pred_idx": p["chosen_pos"],          # position, which indexes `choices`
                 "pred_label": p["chosen_label"],
                 "gold_label": labels[gold_idx] if gold_idx < n else None,
@@ -147,6 +152,12 @@ def run(subject, label_mode, fmt, out_path):
         for rec in results:
             fh.write(json.dumps(rec) + "\n")
     ok = [r for r in results if r["error"] is None]
+    write_manifest(out_path.replace(".jsonl", "_manifest.json"),
+                   f"{subject}:{label_mode}:{fmt}", len(rows), started,
+                   next((r.get("model_version") for r in ok if r.get("model_version")), None),
+                   {"label_mode": label_mode, "format_mode": fmt,
+                    "input_tokens": sum((r.get("usage") or {}).get("input_tokens", 0)
+                                        for r in ok)})
     acc = sum(r["correct"] for r in ok) / len(ok) if ok else 0.0
     print(f"{subject} [{label_mode}/{fmt}]: {acc:.4f} over {len(ok)} "
           f"({len(results) - len(ok)} errors) -> {out_path}")

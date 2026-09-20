@@ -1,0 +1,15 @@
+{
+  "run": "identical:cyber",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model_alias": "jev-latest",
+  "model_version": "jev-1.13.0",
+  "started_utc": "2026-09-20T17:28:07+00:00",
+  "finished_utc": "2026-09-20T17:30:02+00:00",
+  "n_calls": 7948,
+  "repeats": 4,
+  "dropped_items": 0,
+  "usage_totals": {
+    "input_tokens": 6596952,
+    "output_tokens": 357660
+  }
+}

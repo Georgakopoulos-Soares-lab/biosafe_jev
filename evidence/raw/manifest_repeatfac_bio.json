@@ -1,0 +1,12 @@
+{
+  "run": "factorial:bio",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model_alias": "jev-latest",
+  "model_version": "jev-1.13.0",
+  "started_utc": "2026-09-20T17:32:54+00:00",
+  "finished_utc": "2026-09-20T17:34:19+00:00",
+  "n_calls": 6000,
+  "repeats": 3,
+  "sample": 500,
+  "dropped_items": 0
+}
